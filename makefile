@@ -1,45 +1,25 @@
-.PHONY: up dev down restart stage stage-dry clean logs
+.PHONY: up down restart landing archive tools stage stage-dry
 
-# Basis-Compose-Dateien (Produktion)
-COMPOSE_BASE = -f docker-compose.landing.yml \
-               -f docker-compose.archive.yml \
-               -f docker-compose.tools.yml
-
-# Entwicklung (Basis + Overrides)
-COMPOSE_DEV  = $(COMPOSE_BASE) -f docker-compose.override.yml
-
-# ——————————————————  Ziele  ——————————————————
-
-# Produktion starten (ohne Overrides)
 up:
-	docker compose $(COMPOSE_BASE) up -d
+  @docker compose up -d
 
-# Entwicklung starten (mit Overrides)
-dev:
-	docker compose $(COMPOSE_DEV) up -d
-
-# Container stoppen (nutzt DEV-Stack; für Prod → down-prod anlegen)
 down:
-	docker compose $(COMPOSE_DEV) down
+  @docker compose down
 
-# Logs aller Container verfolgen
-logs:
-	docker compose $(COMPOSE_DEV) logs -f
+restart: down
+  @docker compose --profile "*" up -d    # startet alle Profile [oai_citation:17‡docs.docker.com](https://docs.docker.com/compose/how-tos/profiles/#:~:text=If%20you%20want%20to%20enable,profile)
 
-# Dateien mit Label 'keep' in Archiv verschieben
+landing:
+  @docker compose up -d --profile landing
+
+archive:
+  @docker compose up -d --profile archive
+
+tools:
+  @docker compose up -d --profile tools
+
 stage:
-	@echo "→ Staging Dateien mit Tag 'keep'..."
-	SRC=.landing/original DST=.archive/import ./stage.sh
-	@echo "→ Reimportiere in Archiv-Instanz..."
-	docker exec photoprism-archive photoprism import --move
+  @./stage.sh
 
-# Trockenlauf – nichts wird verschoben
 stage-dry:
-	./stage.sh --dry-run
-
-# Aufräumen lokaler Hilfsdateien
-clean:
-	rm -f stage.log keeper.list
-
-# Neustart (Entwicklung)
-restart: down dev
+  @./stage.sh --dry-run

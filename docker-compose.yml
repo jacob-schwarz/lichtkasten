@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # Gruppe "Landing"
+  mariadb-landing:
+    image: mariadb:10.11
+    container_name: mariadb-landing
+    profiles: ["landing"]        # Nur mit Profile "landing" starten
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: photoroot
+      MYSQL_DATABASE: photoprism
+      MYSQL_USER: photoprism
+      MYSQL_PASSWORD: photopass
+    volumes:
+      - /svc/docker/lichtkasten/landing/db:/var/lib/mysql   # DB-Daten für Landing
+    healthcheck:
+      # Prüft Verfügbarkeit der DB via mysqladmin-Ping [oai_citation:5‡last9.io](https://last9.io/blog/docker-compose-health-checks/#:~:text=healthcheck%3A%20test%3A%20%5B,p%24%7BMYSQL_PASSWORD)
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD || exit 1"] 
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  photoprism-landing:
+    image: photoprism/photoprism:latest
+    container_name: photoprism-landing
+    profiles: ["landing"]
+    depends_on:
+      mariadb-landing:
+        condition: service_healthy   # Warte bis mariadb-landing "healthy" ist [oai_citation:6‡docs.docker.com](https://docs.docker.com/compose/how-tos/startup-order/#:~:text=Compose%20creates%20services%20in%20dependency,web)
+        restart: true                # Photoprism neu starten, falls DB neu startet [oai_citation:7‡docs.docker.com](https://docs.docker.com/compose/how-tos/startup-order/#:~:text=Compose%20creates%20services%20in%20dependency,web)
+    restart: unless-stopped
+    ports:
+      - "2342:2342"
+    environment:
+      PHOTOPRISM_AUTH_MODE: "none"   # Keine Authentifizierung für Landing (offen)
+      #PHOTOPRISM_ADMIN_PASSWORD: ${PHOTOPRISM_ADMIN_PASSWORD}
+      PHOTOPRISM_ORIGINALS_PATH: /photoprism/originals
+      PHOTOPRISM_STORAGE_PATH: /photoprism/storage
+      PHOTOPRISM_IMPORT_PATH: /photoprism/import
+      PHOTOPRISM_DATABASE_DRIVER: "mysql"
+      PHOTOPRISM_DATABASE_SERVER: "mariadb-landing:3306"
+      PHOTOPRISM_DATABASE_NAME: "photoprism"
+      PHOTOPRISM_DATABASE_USER: "photoprism"
+      PHOTOPRISM_DATABASE_PASSWORD: "photopass"
+      PHOTOPRISM_SITE_TITLE: "Landing Zone"
+      PHOTOPRISM_SITE_CAPTION: "Sammelbecken für Großes"
+    volumes:
+      - /mnt/raid/lichtkasten/landing/originals:/photoprism/originals   # Originale abgelegt auf RAID
+      - /svc/docker/lichtkasten/landing/storage:/photoprism/storage     # Index/Thumbnails auf System-SSD
+      - /mnt/raid/lichtkasten/landing/import:/photoprism/import         # Import-Verzeichnis auf RAID
+    healthcheck:
+      # Prüft Erreichbarkeit der Photoprism-Weboberfläche (HTTP) [oai_citation:8‡last9.io](https://last9.io/blog/docker-compose-health-checks/#:~:text=test%3A%20%5B%22CMD%22%2C%20%22curl%22%2C%20%22,interval%3A%2030s%20timeout%3A%2010s)
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:2342/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Gruppe "Archive"
+  mariadb-archive:
+    image: mariadb:10.11
+    container_name: mariadb-archive
+    profiles: ["archive"]
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: photoroot
+      MYSQL_DATABASE: photoprism
+      MYSQL_USER: photoprism
+      MYSQL_PASSWORD: photopass
+    volumes:
+      - /svc/docker/lichtkasten/archive/db:/var/lib/mysql    # Separates DB-Datenverzeichnis für Archive
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  photoprism-archive:
+    image: photoprism/photoprism:latest
+    container_name: photoprism-archive
+    profiles: ["archive"]
+    depends_on:
+      mariadb-archive:
+        condition: service_healthy
+        restart: true
+    restart: unless-stopped
+    ports:
+      - "2343:2342"
+    environment:
+      PHOTOPRISM_ADMIN_PASSWORD: ${PHOTOPRISM_ADMIN_PASSWORD}
+      PHOTOPRISM_ORIGINALS_PATH: /photoprism/originals
+      PHOTOPRISM_STORAGE_PATH: /photoprism/storage
+      PHOTOPRISM_IMPORT_PATH: /photoprism/import
+      PHOTOPRISM_DATABASE_DRIVER: "mysql"
+      PHOTOPRISM_DATABASE_SERVER: "mariadb-archive:3306"
+      PHOTOPRISM_DATABASE_NAME: "photoprism"
+      PHOTOPRISM_DATABASE_USER: "photoprism"
+      PHOTOPRISM_DATABASE_PASSWORD: "photopass"
+      PHOTOPRISM_SITE_TITLE: "Fototresor"
+      PHOTOPRISM_SITE_CAPTION: "Hier ist der Schatz"
+    volumes:
+      - /mnt/raid/lichtkasten/archive/originals:/photoprism/originals   # Originale für Archiv
+      - /svc/docker/lichtkasten/archive/storage:/photoprism/storage     # Storage/Index für Archiv
+      - /mnt/raid/lichtkasten/archive/import:/photoprism/import         # Import-Verzeichnis des Archivs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:2342/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Gruppe "Tools"
+  watcher:
+    build:
+      context: .
+      dockerfile: Containerfile.watcher
+    container_name: watcher
+    profiles: ["tools"]
+    depends_on:
+      photoprism-landing:
+        condition: service_healthy   # startet erst, wenn Landing-Photoprism bereit ist
+        restart: true
+    environment:
+      PHOTOPRISM_ADMIN_PASSWORD: ${PHOTOPRISM_ADMIN_PASSWORD}
+    volumes:
+      - /mnt/raid/lichtkasten/landing/import:/photoprism/import:ro      # liest neu importierte Dateien
+    # (Optional könnte hier ein Healthcheck stehen, z.B. Prüfung ob watcher.sh läuft)
