@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mariadb-archive:
+    image: mariadb:10.11
+    container_name: mariadb-archive
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: photoroot
+      MYSQL_DATABASE: photoprism
+      MYSQL_USER: photoprism
+      MYSQL_PASSWORD: photopass
+    volumes:
+      - /internal-ssd/docker/mariadb:/var/lib/mysql
+  
+  photoprism-archive:
+    image: photoprism/photoprism:latest
+    container_name: photoprism-archive
+    depends_on:
+      - mariadb-archive
+    ports:
+      - "2343:2342"
+    environment:
+      PHOTOPRISM_ADMIN_PASSWORD: ${PHOTOPRISM_ADMIN_PASSWORD}
+      PHOTOPRISM_ORIGINALS_PATH: /photoprism/originals
+      PHOTOPRISM_STORAGE_PATH: /photoprism/storage
+      PHOTOPRISM_IMPORT_PATH: /photoprism/import
+      PHOTOPRISM_DATABASE_DRIVER: "mysql"
+      PHOTOPRISM_DATABASE_SERVER: "mariadb-archive:3306"
+      PHOTOPRISM_DATABASE_NAME: "photoprism"
+      PHOTOPRISM_DATABASE_USER: "photoprism"
+      PHOTOPRISM_DATABASE_PASSWORD: "photopass"
+      PHOTOPRISM_SITE_TITLE: "Fototresor"
+      PHOTOPRISM_SITE_CAPTION: "Hier ist der Schatz"
+    volumes:
+      - /mnt/external-ssd/archive/originals:/photoprism/originals
+      - /internal-ssd/photoprism/archive/storage:/photoprism/storage
+      - /mnt/external-ssd/archive/import:/photoprism/import
+    restart: unless-stopped
+
