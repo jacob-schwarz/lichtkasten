@@ -1,0 +1,7 @@
+FROM alpine:latest
+
+RUN apk add --no-cache bash inotify-tools curl
+
+COPY watcher.sh /watcher.sh
+
+ENTRYPOINT ["/watcher.sh"]

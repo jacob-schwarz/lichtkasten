@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  watcher:
+    build:
+      dockerfile: Containerfile.watcher
+    environment:
+      - PHOTOPRISM_ADMIN_PASSWORD=${PHOTOPRISM_ADMIN_PASSWORD}
+    volumes:
+      - /mnt/external-ssd/landing/import:/photoprism/import:ro
+    depends_on:
+      - photoprism-landing
