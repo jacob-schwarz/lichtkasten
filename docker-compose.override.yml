@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  photoprism-landing:
+    environment:
+      PHOTOPRISM_RAW_CONCURRENCY: 1
+      PHOTOPRISM_WORKERS: 1
+    volumes:
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.landing/import:/photoprism/import
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.landing/originals:/photoprism/originals
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.landing/storage:/photoprism/storage
+  mariadb-landing:
+    volumes:
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.landing/db-data:/var/lib/mysql
+
+  photoprism-archive:
+    environment:
+      PHOTOPRISM_RAW_CONCURRENCY: 1
+      PHOTOPRISM_WORKERS: 1
+    volumes:
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.archive/import:/photoprism/import
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.archive/originals:/photoprism/originals
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.archive/storage:/photoprism/storage
+  
+  mariadb-archive:
+    volumes:
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.archive/db-data:/var/lib/mysql
+  
+  watcher:
+    volumes:
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.landing/import:/photoprism/import:ro
