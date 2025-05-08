@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Gruppe "Landing"
   mariadb-landing:
@@ -23,6 +21,7 @@ services:
       start_period: 30s
 
   photoprism-landing:
+    user: "1000:1000"
     image: photoprism/photoprism:latest
     container_name: photoprism-landing
     profiles: ["landing"]
@@ -80,6 +79,7 @@ services:
 
   photoprism-archive:
     image: photoprism/photoprism:latest
+    user: "1000:1000"
     container_name: photoprism-archive
     profiles: ["archive"]
     depends_on:
