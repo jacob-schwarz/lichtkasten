@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mariadb-archive:
     image: mariadb:10.11
@@ -10,14 +8,20 @@ services:
       MYSQL_DATABASE: photoprism
       MYSQL_USER: photoprism
       MYSQL_PASSWORD: photopass
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
-      - /internal-ssd/docker/mariadb:/var/lib/mysql
-  
+      - /svc/docker/mariadb-archive:/var/lib/mysql-archive
+
   photoprism-archive:
     image: photoprism/photoprism:latest
     container_name: photoprism-archive
     depends_on:
-      - mariadb-archive
+      mariadb-archive:
+        condition: service_healthy
     ports:
       - "2343:2342"
     environment:
@@ -33,8 +37,9 @@ services:
       PHOTOPRISM_SITE_TITLE: "Fototresor"
       PHOTOPRISM_SITE_CAPTION: "Hier ist der Schatz"
     volumes:
-      - /mnt/external-ssd/archive/originals:/photoprism/originals
-      - /internal-ssd/photoprism/archive/storage:/photoprism/storage
-      - /mnt/external-ssd/archive/import:/photoprism/import
+      - /mnt/raid/lichtkasten/archive/originals:/photoprism/originals
+      #- /mnt/raid/lichtkasten/archive/import:/photoprism/import
+      - ./test-fotos:/photoprism/import
+      - /svc/docker/photoprism-archive/storage:/photoprism/storage
     restart: unless-stopped
 
