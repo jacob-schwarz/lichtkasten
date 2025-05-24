@@ -129,6 +129,7 @@ services:
     # (Optional könnte hier ein Healthcheck stehen, z.B. Prüfung ob watcher.sh läuft)
 
   importer:
+    image: lichtkasten/importer:latest
     build:
       context: .
       dockerfile: Containerfile.importer

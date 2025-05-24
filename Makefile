@@ -66,4 +66,5 @@ import-external-dry:
 		importer
 
 importer-image:
-	@docker compose build importer
+	@docker build -t lichtkasten/importer:latest -f Containerfile.importer .
+
