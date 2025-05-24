@@ -33,8 +33,7 @@ services:
     ports:
       - "2342:2342"
     environment:
-      PHOTOPRISM_AUTH_MODE: "none"   # Keine Authentifizierung für Landing (offen)
-      #PHOTOPRISM_ADMIN_PASSWORD: ${PHOTOPRISM_ADMIN_PASSWORD}
+      PHOTOPRISM_ADMIN_PASSWORD: ${PHOTOPRISM_ADMIN_PASSWORD}
       PHOTOPRISM_ORIGINALS_PATH: /photoprism/originals
       PHOTOPRISM_STORAGE_PATH: /photoprism/storage
       PHOTOPRISM_IMPORT_PATH: /photoprism/import
@@ -128,3 +127,21 @@ services:
     volumes:
       - /mnt/raid/lichtkasten/landing/import:/photoprism/import:ro      # liest neu importierte Dateien
     # (Optional könnte hier ein Healthcheck stehen, z.B. Prüfung ob watcher.sh läuft)
+
+  importer:
+    build:
+      context: .
+      dockerfile: Containerfile.importer
+
+    volumes:
+      - /mnt/raid/lichtkasten/landing/import:/photoprism/import
+      - /mnt/raid/lichtkasten/.tmp:/lichtkasten/.tmp
+      - /mnt/raid/lichtkasten/.external:/lichtkasten/.external:ro
+      - /mnt/raid/lichtkasten/.logs:/lichtkasten/.logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DRY_RUN=true
+
+    network_mode: host
+    entrypoint: ["/app/import-from-external-media.sh"]
+    

@@ -27,3 +27,20 @@ services:
   watcher:
     volumes:
       - /Users/jacobschwarz/Development/repositories/lichtkasten/.landing/import:/photoprism/import:ro
+
+  importer:
+    build:
+      context: .
+      dockerfile: Containerfile.importer
+    volumes:
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.external:/lichtkasten/.external:ro
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.landing:/photoprism/landing
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.tmp:/lichtkasten/.tmp
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.landing/import:/photoprism/import
+      - /Users/jacobschwarz/Development/repositories/lichtkasten/.logs:/lichtkasten/.logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DRY_RUN=true
+
+    network_mode: host
+    entrypoint: ["/app/import-from-external-media.sh"]

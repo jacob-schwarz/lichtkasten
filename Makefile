@@ -1,4 +1,4 @@
-.PHONY: up down dev restart archive landing tools stage stage-dry
+.PHONY: up down dev logs clean restart archive landing tools stage stage-dry import-external import-external-dry importer-image
 
 # Produktivsystem starten (alle Profile, keine Overrides)
 up:
@@ -7,6 +7,18 @@ up:
 # Devsystem starten (mit Overrides)
 dev:
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml --profile "*" up -d
+
+# Logs aller Services in Echtzeit anzeigen (Tail 100 Zeilen)
+logs:
+	@docker compose \
+		-f docker-compose.yml \
+		-f docker-compose.override.yml \
+		--profile "*" \
+		logs --follow --tail=100
+
+# Clean runtime data
+clean:
+	@rm -rf .landing .archive
 
 # Stoppen
 down:
@@ -32,3 +44,26 @@ stage:
 # Dry run für stage
 stage-dry:
 	@./stage.sh --dry-run
+
+# Importiere Dateien von externem Medium über Container
+import-external:
+	@docker compose \
+		-f docker-compose.yml \
+		-f docker-compose.override.yml \
+		run --rm \
+		-e MEDIA=$(MEDIA) \
+		-e DRY_RUN=false \
+		importer
+
+# Importiere im DRY-RUN Modus (zum Testen ohne Änderungen)
+import-external-dry:
+	@docker compose \
+		-f docker-compose.yml \
+		-f docker-compose.override.yml \
+		run --rm \
+		-e MEDIA=$(MEDIA) \
+		-e DRY_RUN=true \
+		importer
+
+importer-image:
+	@docker compose build importer

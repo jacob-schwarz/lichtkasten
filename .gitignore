@@ -1,4 +1,7 @@
 .landing/
 .archive/
+.external/
+.tmp/
+.logs/
 .env
 stage.log
