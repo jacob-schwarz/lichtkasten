@@ -11,12 +11,15 @@ while true; do
   if (( ${#FILES[@]} > 0 )); then
     echo "[Watcher] ${#FILES[@]} Datei(en) erkannt – starte Import..."
 
-    RESPONSE=$(curl -s -v -u "admin:$PHOTOPRISM_ADMIN_PASSWORD" \
-      -H "Content-Type: application/json" \
-      -X POST "http://photoprism-landing:2342/api/v1/import/" \
-      -d '{}')
+    RESPONSE=$(
+      curl -s -v \
+        -H "Authorization: Bearer WJXcfs-3UfHv6-yDlJyI-5vVGMa" \
+        -H "Content-Type: application/json" \
+        -X POST "http://photoprism-landing:2342/api/v1/import/" \
+        -d '{"move": true}'
+      )
 
-    echo "[Watcher] Photoprism antwortete: $RESPONSE"
+    echo "Photoprism antwortete: $RESPONSE"
   else
     echo "[Watcher] Keine neuen Dateien."
   fi
